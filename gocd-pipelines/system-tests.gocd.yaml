@@ -1,0 +1,58 @@
+format_version: 2
+pipelines:
+  System_Tests:
+    group: SamplePipeline
+    materials:
+      backend:
+        git: http://git-repo:3000/gocd/system-tests.git
+        branch: master
+      AndroidDevDeploymentFinished:
+        pipeline: Mobile_DevDeployment_Android
+        stage: Upload_To_Testfairy
+      IOSDevDeploymentFinished:
+        pipeline: Mobile_DevDeployment_IOS
+        stage: Upload_To_Testfairy
+      BackendDevDeploymentFinished:
+        pipeline: Backend_DevDeployment
+        stage: E2E_Tests
+    stages:
+      - System_Test:
+          clean_workspace: true
+          jobs:
+            Android_System_Test:
+              tasks:
+                - exec:
+                    run_if: passed
+                    command: /bin/bash
+                    arguments:
+                    - ./scripts/android-system-tests.sh
+                    - Dev
+            IOS_System_Tests:
+              tasks:
+                - exec:
+                    run_if: passed
+                    command: /bin/bash
+                    arguments:
+                    - ./scripts/ios-system-tests.sh
+                    - Dev
+      - Generate_Report:
+          jobs:
+            Generate_Report:
+              tasks:
+                - exec:
+                    run_if: passed
+                    command: /bin/bash
+                    arguments:
+                    - ./scripts/system-tests-report.sh
+                    - Dev
+      - Approve:
+          approval: manual
+          jobs:
+            Approve:
+              tasks:
+                - exec:
+                    run_if: passed
+                    command: /bin/bash
+                    arguments:
+                    - -c
+                    - echo "System Tests Approved"
